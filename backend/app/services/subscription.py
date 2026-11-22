@@ -62,10 +62,14 @@ class SubscriptionService(BaseModuleService):
 
         if action == "审批通过":
             # 联动增强：创建用量初始化记录
-            from app.services.data_manager import write_usage
+            from app.services.data_manager import next_usage_id, write_usage
             from app.store import store as s
 
+            usage_rows = s.rows("usage_billing")
+            # 编号不与磁盘原单、内存记录冲突，每笔原单各占自己的记录编号
+            billing_id = next_usage_id(int(r.get("id", 0)) for r in usage_rows)
             billing_data = {
+                "usage_id": billing_id,
                 "subscription_id": entry_id,
                 "applicant": entry.get("申请方"),
                 "api_name": entry.get("订阅API"),
@@ -75,8 +79,6 @@ class SubscriptionService(BaseModuleService):
                 "billing_cycle": self._current_billing_cycle(),
                 "settlement_status": "计量中",
             }
-            usage_rows = s.rows("usage_billing")
-            billing_id = max((int(r.get("id", 0)) for r in usage_rows), default=0) + 1
             write_usage(billing_id, billing_data)
 
             # 联动增强：审批通过后自动创建限流策略

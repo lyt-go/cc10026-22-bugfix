@@ -73,6 +73,16 @@ def export_entries(
     )
 
 
+@router.get("/{module}/cycles/{billing_cycle}", response_model=dict)
+def get_billing_cycle(module: str, billing_cycle: str) -> dict[str, Any]:
+    """账期视图：返回该模块持久化的原单和账期结算明细。"""
+    service = require_service(module)
+    getter = getattr(service, "get_billing_cycle_detail", None)
+    if getter is None:
+        raise HTTPException(status_code=404, detail=f"{service.ENTITY}不支持账期视图")
+    return getter(billing_cycle)
+
+
 @router.get("/{module}/{entry_id}", response_model=dict)
 def get_entry(module: str, entry_id: int) -> dict[str, Any]:
     service = require_service(module)
